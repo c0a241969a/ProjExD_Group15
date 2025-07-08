@@ -72,6 +72,18 @@ def shoot(shooter, target):
         action_log = "弾切れ。ゲームオーバー。"
         game_over = True
 
+
+class Item:
+    """
+    アイテムに関するクラス
+    """
+    def searchglass(round):
+        if round==1:
+            print("次の弾は実弾だ。")
+        else:
+            print("次の弾は空弾だ。")
+
+
 # アップデート
 load_bullets()
 rotate_chamber()
