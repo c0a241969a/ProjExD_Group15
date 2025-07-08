@@ -4,7 +4,6 @@ import sys
 import os
 
 pygame.init()
-pygame.mixer.init()  #サウンドミキサーを初期化
 
 # 環境設定
 WIDTH, HEIGHT = 1100, 650
@@ -23,6 +22,12 @@ font_path = pygame.font.match_font("msgothic")
 if not os.path.exists(font_path):
     font_path = pygame.font.match_font("msgothic")
 font = pygame.font.Font(font_path, 28) if font_path else pygame.font.SysFont("msgothic", 28)
+
+# サウンドの設定
+pygame.mixer.init()
+gunshot_sound = pygame.mixer.Sound("sound\拳銃を撃つ.mp3")  #銃声を読み込み
+blank_sound = pygame.mixer.Sound("sound\拳銃の弾切れ.mp3")  #空砲音を読み込み
+
 
 # ゲームの初期値
 bullet_count = 2
@@ -62,12 +67,14 @@ def shoot(shooter, target):
         round = chamber.pop(0)
         turn_count += 1
         if round == 1:
-            message = f"バン！ {target} が撃たれた！"
+            message = f"バン！ {target} が撃たれた！" 
             action_log = f"{shooter} が撃った対象： {target}. {target} が撃たれた！"
+            gunshot_sound.play()
             game_over = True
         else:
             message = f"カチッ！ {target} は生き残った。"
             action_log = f"{shooter} が撃った対象： {target}. {target} は生き残った。"
+            blank_sound.play()
     else:
         message = "弾はもう残っていません。"
         action_log = "弾切れ。ゲームオーバー。"
@@ -79,7 +86,6 @@ rotate_chamber()
 
 def main():
     player_turn = True
-
     while True:
         screen.fill(WHITE)
 
