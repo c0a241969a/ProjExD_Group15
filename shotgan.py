@@ -26,7 +26,6 @@ font = pygame.font.Font(font_path, 28) if font_path else pygame.font.SysFont("ms
 # ゲームの初期値
 bullet_count = 2
 chamber_size = 6
-player_turn = True
 game_over = False
 message = "ゲーム開始！"
 action_log = ""
@@ -78,6 +77,7 @@ load_bullets()
 rotate_chamber()
 
 def main():
+    player_turn = True
     while True:
         screen.fill(WHITE)
 
