@@ -4,6 +4,7 @@ import sys
 import os
 
 pygame.init()
+pygame.mixer.init()  #サウンドミキサーを初期化
 
 # 環境設定
 WIDTH, HEIGHT = 1100, 650
@@ -26,7 +27,6 @@ font = pygame.font.Font(font_path, 28) if font_path else pygame.font.SysFont("ms
 # ゲームの初期値
 bullet_count = 2
 chamber_size = 6
-player_turn = True
 game_over = False
 message = "ゲーム開始！"
 action_log = ""
@@ -78,6 +78,8 @@ load_bullets()
 rotate_chamber()
 
 def main():
+    player_turn = True
+
     while True:
         screen.fill(WHITE)
 
@@ -114,6 +116,7 @@ def main():
             player_turn = True
 
         pygame.display.flip()
+
 if __name__ == "__main__":
     pygame.init()
     main()
