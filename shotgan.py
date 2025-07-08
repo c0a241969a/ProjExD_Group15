@@ -8,6 +8,7 @@ pygame.init()
 
 # Screen settings
 WIDTH, HEIGHT = 800, 600
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("バックショット・ルーレット")
 
