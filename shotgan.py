@@ -1,4 +1,4 @@
-import pygame
+import pygame 
 import random
 import sys
 import os
@@ -77,39 +77,45 @@ def shoot(shooter, target):
 load_bullets()
 rotate_chamber()
 
-while True:
-    screen.fill(WHITE)
+def main():
+    while True:
+        screen.fill(WHITE)
 
-    draw_text("こうかとん・ルーレット", 280, 50)
-    draw_text(f"ターン： {'プレイヤー' if player_turn else '相手'}", 300, 100)
-    draw_text(message, 250, 150)
-    draw_text(f"ターン数： {turn_count}", 300, 200)
-    draw_text(f"弾数： {chamber.count(1)}", 300, 240)
-    draw_text(f"空砲： {chamber.count(0)}", 300, 280)
-    draw_text(f"アクション： {action_log}", 100, 320)
+        draw_text("こうかとん・ルーレット", 280, 50)
+        draw_text(f"ターン： {'プレイヤー' if player_turn else '相手'}", 300, 100)
+        draw_text(message, 250, 150)
+        draw_text(f"ターン数： {turn_count}", 300, 200)
+        draw_text(f"弾数： {chamber.count(1)}", 300, 240)
+        draw_text(f"空砲： {chamber.count(0)}", 300, 280)
+        draw_text(f"アクション： {action_log}", 100, 320)
 
-    # 操作ボタンを表示
-    shoot_self_btn = draw_button("自分を撃つ", 200, 400, 150, 50, RED)
-    shoot_opponent_btn = draw_button("Shoot 相手", 450, 400, 150, 50, BLUE)
+        # 操作ボタンを表示
+        shoot_self_btn = draw_button("自分を撃つ", 200, 400, 150, 50, RED)
+        shoot_opponent_btn = draw_button("Shoot 相手", 450, 400, 150, 50, BLUE)
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-        if player_turn and event.type == pygame.MOUSEBUTTONDOWN and not game_over:
-            if shoot_self_btn.collidepoint(event.pos):
-                shoot("プレイヤー", "プレイヤー")
-                player_turn = False
-            elif shoot_opponent_btn.collidepoint(event.pos):
-                shoot("プレイヤー", "相手")
-                player_turn = False
+            if player_turn and event.type == pygame.MOUSEBUTTONDOWN and not game_over:
+                if shoot_self_btn.collidepoint(event.pos):
+                    shoot("プレイヤー", "プレイヤー")
+                    player_turn = False
+                elif shoot_opponent_btn.collidepoint(event.pos):
+                    shoot("プレイヤー", "相手")
+                    player_turn = False
 
-    # 相手の動き
-    if not player_turn and not game_over:
-        pygame.time.wait(1000)
-        target = random.choice(["プレイヤー", "相手"])
-        shoot("相手", target)
-        player_turn = True
+        # 相手の動き
+        if not player_turn and not game_over:
+            pygame.time.wait(1000)
+            target = random.choice(["プレイヤー", "相手"])
+            shoot("相手", target)
+            player_turn = True
 
-    pygame.display.flip()
+        pygame.display.flip()
+if __name__ == "__main__":
+    pygame.init()
+    main()
+    pygame.quit()
+    sys.exit()
