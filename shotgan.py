@@ -32,6 +32,7 @@ action_log = ""
 chamber = []
 turn_count = 0
 skip_opponent_turn = False
+player_turn = True
 
 # 空弾の数をランダムに設定
 def load_bullets():
@@ -78,7 +79,8 @@ class Item:
     """
     アイテムに関するクラス
     """
-    #次の弾が実弾か空弾かを判定し、けんかを出力
+    #次の弾が実弾か空弾かを判定し、結果を出力
+    @staticmethod
     def searchglass(round):
         print("虫眼鏡を使った。")
         if round==1:
@@ -87,22 +89,27 @@ class Item:
             print("次の弾は空弾だ。")
     
     #HP1を回復させる
+    @staticmethod
     def tobacco(hp):
         hp+=1
         print("タバコを使った。HPが1回復した。")
         return hp
 
     #実弾だった場合、ダメージが2倍になる
+    @staticmethod
     def saw(round,hp):
         if round ==1:
             hp-=2
             print("のこぎりを使った。ダメージが2倍になった。")
             return hp
-
-    def handcuffs(skip_opponent_turn,player_turn):
-            print("手錠を使った。相手のターンはスキップされた。")
-            skip_opponent_turn = False
+        
+    #相手のターンを一回スキップする
+    @staticmethod
+    def handcuffs():
+            global skip_opponent_turn,player_turn
+            skip_opponent_turn =False
             player_turn = True
+            print("手錠を使った。相手のターンはスキップされた。")
 
         
 
@@ -144,7 +151,7 @@ def main():
         if not player_turn and not game_over:
             pygame.time.wait(1000)
             if skip_opponent_turn:
-                Item.handcuffs(skip_opponent_turn,player_turn)
+                Item.handcuffs()
             else:
                 target = random.choice(["プレイヤー", "相手"])
                 shoot("相手", target)
