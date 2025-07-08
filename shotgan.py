@@ -24,8 +24,8 @@ if not os.path.exists(font_path):
 font = pygame.font.Font(font_path, 28) if font_path else pygame.font.SysFont("msgothic", 28)
 
 # ゲームの初期値
-bullet_count = 2
-chamber_size = 6
+# bullet_count = 2
+chamber_size = random.randint(1, 7)
 game_over = False
 message = "ゲーム開始！"
 action_log = ""
@@ -36,6 +36,7 @@ turn_count = 0
 def load_bullets():
     global chamber
     chamber = [0] * chamber_size
+    bullet_count = random.randint(1, chamber_size-1)
     bullets = random.sample(range(chamber_size), bullet_count)
     for i in bullets:
         chamber[i] = 1
@@ -68,9 +69,9 @@ def shoot(shooter, target):
             message = f"カチッ！ {target} は生き残った。"
             action_log = f"{shooter} が撃った対象： {target}. {target} は生き残った。"
     else:
-        message = "弾はもう残っていません。"
-        action_log = "弾切れ。ゲームオーバー。"
-        game_over = True
+        if player_hp != 0 and opponent_hp !=0:  # もし弾がなくなっても双方のHPが残っていたらリロード
+            load_bullets()
+            rotate_chamber()
 
 # アップデート
 load_bullets()
