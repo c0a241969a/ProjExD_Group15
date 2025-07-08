@@ -72,7 +72,7 @@ def shoot(shooter, target):
         if player_hp != 0 and opponent_hp !=0:  # もし弾がなくなっても双方のHPが残っていたらリロード
             load_bullets()
             rotate_chamber()
-
+            
 # アップデート
 load_bullets()
 rotate_chamber()
