@@ -54,6 +54,18 @@ def draw_button(text, x, y, w, h, color):
     draw_text(text, x + 10, y + 10)
     return pygame.Rect(x, y, w, h)
 
+#アイテムボックスとアイテムの画像
+item_box_img = pygame.image.load("fig/alien1.png")
+item_box_img = pygame.transform.scale(item_box_img, (100, 100))
+item_list = [
+    ("虫眼鏡", pygame.image.load("fig/0.png")),
+    ("タバコ", pygame.image.load("fig/1.png")),
+    ("ノコギリ", pygame.image.load("fig/2.png")),
+    ("手錠", pygame.image.load("fig/3.png"))    
+]
+selected_item = None
+show_use_confirm = False 
+
 # 銃を撃つ
 def shoot(shooter, target):
     global message, game_over, turn_count, action_log
@@ -77,6 +89,8 @@ load_bullets()
 rotate_chamber()
 
 def main():
+    global selected_item
+    selected_item = None
     player_turn = True
     while True:
         screen.fill(WHITE)
@@ -93,6 +107,17 @@ def main():
         shoot_self_btn = draw_button("自分を撃つ", 200, 400, 150, 50, RED)
         shoot_opponent_btn = draw_button("Shoot 相手", 450, 400, 150, 50, BLUE)
 
+        item_box_rect = pygame.Rect(800, 100, 100, 100)  # アイテムボックスの範囲
+        screen.blit(item_box_img, item_box_rect.topleft)
+
+        # アイテム表示（選ばれていれば）
+        if player_turn:
+            screen.blit(item_box_img, (800, 100))
+        if selected_item:
+            name, img = selected_item
+            screen.blit(img, (800, 220))  # アイテム画像の表示位置
+            draw_text(name, 800, 310)
+            
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -102,9 +127,13 @@ def main():
                 if shoot_self_btn.collidepoint(event.pos):
                     shoot("プレイヤー", "プレイヤー")
                     player_turn = False
+                    selected_item = None
                 elif shoot_opponent_btn.collidepoint(event.pos):
                     shoot("プレイヤー", "相手")
                     player_turn = False
+                    selected_item = None
+                elif item_box_rect.collidepoint(event.pos):
+                    selected_item = random.choice(item_list)
 
         # 相手の動き
         if not player_turn and not game_over:
