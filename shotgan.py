@@ -33,6 +33,10 @@ action_log = ""
 chamber = []
 turn_count = 0
 
+#HP初期設定
+player_hp = 3
+opponent_hp = 3
+
 # 空弾の数をランダムに設定
 def load_bullets():
     global chamber
@@ -58,15 +62,28 @@ def draw_button(text, x, y, w, h, color):
 # 銃を撃つ
 def shoot(shooter, target):
     global message, game_over, turn_count, action_log
+    global player_hp, opponent_hp
+
     if chamber:
         round = chamber.pop(0)
         turn_count += 1
         if round == 1:
-            message = f"バン！ {target} が撃たれた！"
-            action_log = f"{shooter} が撃った対象： {target}. {target} が撃たれた！"
-            game_over = True
+            if target == "プレイヤー":
+                player_hp -= 1
+                message = f"バン！ {target} が撃たれた！ 残りHP: {player_hp}"
+                action_log = f"{shooter} が撃った対象： {target}. {target} が撃たれた！"
+                if player_hp <= 0:
+                    message = "あなたのHPは0 ゲームオーバー"
+                    game_over = True
+            else:
+                opponent_hp -= 1
+                message = f"バン！ {target} が撃たれた！ 残りHP: {opponent_hp}"
+                action_log = f"{shooter} が撃った対象： {target}. {target} が撃たれた！"
+                if opponent_hp <= 0:
+                    message = "こうかとんのHPは0 あなたの勝ち！"
+                    game_over = True
         else:
-            message = f"カチッ！ {target} は生き残った。"
+            message = f"カチッ！ {target} は生き残った。" 
             action_log = f"{shooter} が撃った対象： {target}. {target} は生き残った。"
     else:
         message = "弾はもう残っていません。"
@@ -78,6 +95,8 @@ load_bullets()
 rotate_chamber()
 
 def main():
+    global player_turn, game_over
+
     while True:
         screen.fill(WHITE)
 
@@ -85,35 +104,48 @@ def main():
         draw_text(f"ターン： {'プレイヤー' if player_turn else '相手'}", 300, 100)
         draw_text(message, 250, 150)
         draw_text(f"ターン数： {turn_count}", 300, 200)
-        draw_text(f"弾数： {chamber.count(1)}", 300, 240)
-        draw_text(f"空砲： {chamber.count(0)}", 300, 280)
+        draw_text(f"実弾： {chamber.count(1)}", 300, 240)
+        draw_text(f"空弾： {chamber.count(0)}", 300, 280)
         draw_text(f"アクション： {action_log}", 100, 320)
+        draw_text(f"あなたのHP： {player_hp}", 100, 500, RED)
+        draw_text(f"相手のHP： {opponent_hp}", 800, 500, BLUE)
 
         # 操作ボタンを表示
-        shoot_self_btn = draw_button("自分を撃つ", 200, 400, 150, 50, RED)
-        shoot_opponent_btn = draw_button("Shoot 相手", 450, 400, 150, 50, BLUE)
+        if not game_over:
+            shoot_self_btn = draw_button("自分を撃つ", 200, 400, 150, 50, RED)
+            shoot_opponent_btn = draw_button("Shoot 相手", 450, 400, 150, 50, BLUE)
+        else:
+            draw_text("ESCで終了", 450, 400, RED)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
-            if player_turn and event.type == pygame.MOUSEBUTTONDOWN and not game_over:
-                if shoot_self_btn.collidepoint(event.pos):
-                    shoot("プレイヤー", "プレイヤー")
-                    player_turn = False
-                elif shoot_opponent_btn.collidepoint(event.pos):
-                    shoot("プレイヤー", "相手")
-                    player_turn = False
+            if not game_over:
+                if player_turn and event.type == pygame.MOUSEBUTTONDOWN:
+                    if shoot_self_btn.collidepoint(event.pos):
+                        shoot("プレイヤー", "プレイヤー")
+                        player_turn = False
+                    elif shoot_opponent_btn.collidepoint(event.pos):
+                        shoot("プレイヤー", "相手")
+                        player_turn = False
+            else:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
 
         # 相手の動き
         if not player_turn and not game_over:
             pygame.time.wait(1000)
             target = random.choice(["プレイヤー", "相手"])
             shoot("相手", target)
-            player_turn = True
+            if not game_over:
+                player_turn = True
 
         pygame.display.flip()
+
+
 if __name__ == "__main__":
     pygame.init()
     main()
