@@ -82,37 +82,42 @@ class Item:
     #次の弾が実弾か空弾かを判定し、結果を出力
     @staticmethod
     def searchglass(round):
+        global message
         print("虫眼鏡を使った。")
-        if round==1:
-            print("次の弾は実弾だ。")
+        if round == 1:
+            message = "次の弾は実弾だ。"
         else:
-            print("次の弾は空弾だ。")
+            message = "虫眼鏡：次の弾は空弾です。"
     
     #HP1を回復させる
     @staticmethod
     def tobacco(hp):
-        hp+=1
-        print("タバコを使った。HPが1回復した。")
+        global message
+        if hp < 3:
+            hp += 1
+            message = "タバコを使ってHPを1回復した。"
+        else:
+            message = "タバコを使ったが、HPはすでに最大だった。"
         return hp
 
     #実弾だった場合、ダメージが2倍になる
     @staticmethod
-    def saw(round,hp):
-        if round ==1:
-            hp-=2
-            print("のこぎりを使った。ダメージが2倍になった。")
-            return hp
+    def saw(round, hp):
+        global message
+        if round == 1:
+            hp -= 2
+            message = "のこぎりを使った。ダメージが2倍になった。"
+        return hp
         
     #相手のターンを一回スキップする
     @staticmethod
     def handcuffs():
-            global skip_opponent_turn,player_turn
-            skip_opponent_turn =False
-            player_turn = True
-            print("手錠を使った。相手のターンはスキップされた。")
+        global skip_opponent_turn,message,enemy_can_use_items
+        skip_opponent_turn = True
+        enemy_can_use_items = False
+        message = "手錠を使って相手のターンをスキップした。"
 
         
-
 # アップデート
 load_bullets()
 rotate_chamber()
