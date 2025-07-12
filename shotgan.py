@@ -3,7 +3,9 @@ import random
 import sys
 import os
 
+
 pygame.init()
+
 
 # 環境設定
 WIDTH, HEIGHT = 1100, 650
@@ -11,17 +13,20 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("こうかとん・ルーレット")
 
+
 # 色
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (200, 0, 0)
 BLUE = (0, 0, 200)
 
+
 # フォントを日本語に設定
 font_path = pygame.font.match_font("msgothic")
 if not os.path.exists(font_path):
     font_path = pygame.font.match_font("msgothic")
 font = pygame.font.Font(font_path, 28) if font_path else pygame.font.SysFont("msgothic", 28)
+
 
 # ゲームの初期値
 bullet_count = 2
@@ -33,6 +38,8 @@ chamber = []
 turn_count = 0
 skip_opponent_turn = False
 player_turn = True
+enemy_can_use_items = True
+
 
 # 空弾の数をランダムに設定
 def load_bullets():
@@ -45,16 +52,19 @@ def load_bullets():
 def rotate_chamber():
     random.shuffle(chamber)
 
+
 # テキスト表示
 def draw_text(text, x, y, color=BLACK):
     img = font.render(text, True, color)
     screen.blit(img, (x, y))
+
 
 # 操作ボタンの表示
 def draw_button(text, x, y, w, h, color):
     pygame.draw.rect(screen, color, (x, y, w, h))
     draw_text(text, x + 10, y + 10)
     return pygame.Rect(x, y, w, h)
+
 
 # 銃を撃つ
 def shoot(shooter, target):
@@ -83,7 +93,6 @@ class Item:
     @staticmethod
     def searchglass(round):
         global message
-        print("虫眼鏡を使った。")
         if round == 1:
             message = "次の弾は実弾だ。"
         else:
@@ -123,7 +132,7 @@ load_bullets()
 rotate_chamber()
 
 def main():
-    player_turn = True
+    global player_turn, game_over, skip_opponent_turn
     while True:
         screen.fill(WHITE)
 
@@ -156,7 +165,8 @@ def main():
         if not player_turn and not game_over:
             pygame.time.wait(1000)
             if skip_opponent_turn:
-                Item.handcuffs()
+                skip_opponent_turn = False
+                player_turn = True
             else:
                 target = random.choice(["プレイヤー", "相手"])
                 shoot("相手", target)
