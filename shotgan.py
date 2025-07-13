@@ -91,13 +91,13 @@ def shoot(shooter, target):
 
 
 # アイテム画像
-item_box_img = pygame.image.load("fig/alien1.png")
+item_box_img = pygame.image.load("fig/itembox.png")
 item_box_img = pygame.transform.scale(item_box_img, (100, 100))
 item_list = [
-    ("虫眼鏡", pygame.image.load("fig/0.png")),
-    ("タバコ", pygame.image.load("fig/1.png")),
-    ("のこぎり", pygame.image.load("fig/2.png")),
-    ("手錠", pygame.image.load("fig/3.png"))    
+    ("虫眼鏡", pygame.image.load("fig/searchglass.png")),
+    ("タバコ", pygame.image.load("fig/tobacco.png")),
+    ("のこぎり", pygame.image.load("fig/saw.png")),
+    ("手錠", pygame.image.load("fig/handcuffs.png"))    
 ]
 
 # 確認ボタン描画
