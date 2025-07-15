@@ -33,7 +33,8 @@ blank_sound = pygame.mixer.Sound("sound\拳銃の弾切れ.mp3")  #空砲音を�
 
 
 # ゲームの初期値
-chamber_size = random.randint(1, 7)
+# bullet_count = 2
+chamber_size = random.randint(2, 7)
 game_over = False
 message = "リロード完了！"
 item_message = ""
@@ -46,6 +47,7 @@ skip_opponent_turn = False
 player_turn = True
 enemy_can_use_items = True
 last_dead = None  # 誰がやられたか（"player" or "opponent"）
+damage = 1
 
 
 # 画像読み込み
@@ -117,14 +119,15 @@ def draw_button(text, x, y, w, h, color):
 def shoot(shooter, target):
     global message, game_over, turn_count, action_log
     global player_hp, opponent_hp, chamber, final_turn_text
-    global player_turn, skip_opponent_turn 
+    global player_turn, skip_opponent_turn, damage
 
     if chamber:
         round = chamber.pop(0)  # 次の弾を取り出す
         turn_count += 1
         if round == 1:  # 実弾
             if target == "あなた":
-                player_hp -= 1
+                player_hp -= damage
+                damage = 1
                 message = f"バン！ {target} が撃たれた！ 残りHP: {player_hp}"
                 action_log = f"{shooter} は {target} に向かって撃った！"
                 gunshot_sound.play()
@@ -133,7 +136,8 @@ def shoot(shooter, target):
                     gunshot_sound.play()
                     game_over = True
             else:
-                opponent_hp -= 1
+                opponent_hp -= damage
+                damage = 1
                 message = f"バン！ {target} が撃たれた！ 残りHP: {opponent_hp}"
                 action_log = f"{shooter} は {target} に向かって撃った！"
                 gunshot_sound.play()
@@ -187,50 +191,53 @@ class Item:
         if round == 1:
             message = "次の弾は実弾だ。"
         else:
-            message = "虫眼鏡：次の弾は空弾です。"
-    
+            message = "次の弾は空弾だ。"
+
     #HP1を回復させる
     @staticmethod
     def tobacco(hp):
         global message
         if hp < 3:
             hp += 1
-            message = "タバコを使ってHPを1回復した。"
+            message = "ハートを使ってHPを1回復した。"
         else:
-            message = "タバコを使ったが、HPはすでに最大だった。"
+            message = "ハートを使ったが、HPはすでに最大だった。"
         return hp
 
     #実弾だった場合、ダメージが2倍になる
     @staticmethod
     def saw(round, hp):
-        global message
+        global message, damage
         if round == 1:
-            hp -= 2
-            message = "のこぎりを使った。ダメージが2倍になった。"
+            damage *= 2
+            message = "薬を使った。ダメージが2倍になった。"
         return hp
-        
+
     #相手のターンを一回スキップする
     @staticmethod
     def handcuffs():
         global skip_opponent_turn,message,enemy_can_use_items
         skip_opponent_turn = True
         enemy_can_use_items = False
-        message = "手錠を使って相手のターンをスキップした。"
+        message = "手錠を使って相手のターンをスキップした。" 
+
 
 
 # 共通画面描画
 def draw_main_screen():
 
     # ターン表示（ゲーム終了後は固定）
-    turn_display = "ターン： " + (final_turn_text if game_over else ("あなた" if player_turn else "こうかとん"))
-    draw_text("こうかとん・ルーレット", (WIDTH - font.size("こうかとん・ルーレット")[0]) // 2, 40)
-    draw_text(turn_display, 200, 100)
-    draw_text(message, 200, 250)
-    draw_text(f"ターン数： {turn_count}", 200, 150)
-    draw_text(f"残りの弾数： {len(chamber)}", 200, 300)
-    draw_text(f"アクション： {action_log}", 200, 200)
+    turn_display = "ターン： " + (final_turn_text if game_over else ("こうかとん" if player_turn else "あなた"))
+    # draw_text("こうかとん・ルーレット", (WIDTH - font.size("こうかとん・ルーレット")[0]) // 2, 40)
+    draw_text(turn_display, 30, 100)
+    draw_text(message, 30, 250)
+    draw_text(f"ターン数： {turn_count}", 30, 150)
+    draw_text(f"実弾： {chamber.count(1)}", 470, 420, BLACK, WHITE)
+    draw_text(f"空弾： {chamber.count(0)}", 470, 460, BLACK, WHITE)
+    draw_text(f"アクション： {action_log}", 30, 200)
     draw_text(f"あなたのHP： {player_hp}", 180, 500, RED)
     draw_text(f"こうかとんのHP： {opponent_hp}", 650, 500, BLUE)
+        
 
 def opponent_turn():
     """こうかとんのターン演出"""
@@ -269,10 +276,10 @@ def opponent_turn():
 item_box_img = pygame.image.load("fig/itembox.png")
 item_box_img = pygame.transform.scale(item_box_img, (100, 100))
 item_list = [
-    ("虫眼鏡", pygame.image.load("fig/searchglass.png")),
-    ("タバコ", pygame.image.load("fig/tobacco.png")),
-    ("のこぎり", pygame.image.load("fig/saw.png")),
-    ("手錠", pygame.image.load("fig/handcuffs.png"))    
+    ("次弾の確認", pygame.image.load("fig/searchglass.png")),
+    ("HP1回復", pygame.image.load("fig/tobacco.png")),
+    ("ダメージ2倍", pygame.image.load("fig/saw.png")),
+    ("相手をスキップ", pygame.image.load("fig/handcuffs.png"))
 ]
 
 # 確認ボタン描画
@@ -285,15 +292,15 @@ def draw_use_confirm_buttons():
 # アイテム効果適用
 def apply_item_effect(name):
     global player_hp,opponent_hp
-    if name == "虫眼鏡":
+    if name == "次弾の確認":
         Item.searchglass(chamber[0])
-    elif name == "タバコ":
+    elif name == "HP1回復":
         player_hp = Item.tobacco(player_hp)
         opponent_hp = Item.tobacco(opponent_hp)
-    elif name == "のこぎり":
+    elif name == "ダメージ2倍":
         player_hp = Item.saw(chamber[0], player_hp)
         opponent_hp = Item.saw(chamber[0], opponent_hp)
-    elif name == "手錠":
+    elif name == "相手をスキップ":
         Item.handcuffs()
 
 
@@ -311,16 +318,17 @@ def main():
 
 
     while True:
-        draw_main_screen()
-
         screen.blit(background_img, (0, 0))
         screen.blit(current_enemy_img, (0, 0))
-        draw_text(f"ターン： {'プレイヤー' if player_turn else '相手'}", 30, 80, BLACK, WHITE)
-        draw_text(message, 30, 130, BLACK, WHITE)
-        draw_text(f"ターン数： {turn_count}", 30, 180, BLACK, WHITE)
-        draw_text(f"弾数： {chamber.count(1)}", 470, 420, BLACK, WHITE)
-        draw_text(f"空砲： {chamber.count(0)}", 470, 460, BLACK, WHITE)
-        draw_text(f"アクション： {action_log}", 30, 330, BLACK, WHITE)
+
+        draw_main_screen()
+
+        # draw_text(f"ターン： {'プレイヤー' if player_turn else '相手'}", 30, 80, BLACK, WHITE)
+        # draw_text(message, 30, 130, BLACK, WHITE)
+        # draw_text(f"ターン数： {turn_count}", 30, 180, BLACK, WHITE)
+        # draw_text(f"弾数： {chamber.count(1)}", 470, 420, BLACK, WHITE)
+        # draw_text(f"空砲： {chamber.count(0)}", 470, 460, BLACK, WHITE)
+        # draw_text(f"アクション： {action_log}", 30, 330, BLACK, WHITE)
 
         # 操作ボタン
         if not game_over and player_turn:
@@ -365,19 +373,19 @@ def main():
                         else:
                             turn_phase = "enemy_wait"
                             enemy_action_timer = pygame.time.get_ticks()
-                            player_turn = False
+                            player_turn = True
                             selected_item = None
                             item_used_this_turn = False
                             item_box_clicked_this_turn = False
                         draw_main_screen()
                         pygame.display.flip()
-                        pygame.time.wait(3000)  # 結果を3秒表示
+                        # pygame.time.wait(3000)  # 結果を3秒表示
                         player_turn = False  
                     elif shoot_opponent_btn.collidepoint(event.pos):
                         shoot("あなた", "こうかとん")
                         draw_main_screen()
                         pygame.display.flip()
-                        pygame.time.wait(3000)  # 結果を3秒表示
+                        # pygame.time.wait(3000)  # 結果を3秒表示
                         player_turn = False
                         turn_phase = "enemy_wait"
                         enemy_action_timer = pygame.time.get_ticks()
@@ -399,9 +407,9 @@ def main():
                     pygame.quit()
                     sys.exit()   
         # 相手のターン処理
-        if not player_turn and not game_over:
-            pygame.time.wait(1000)
-            # 敵の行動フェーズ
+        # if not player_turn and not game_over:
+        #     pygame.time.wait(1000)
+        #     # 敵の行動フェーズ
         if turn_phase == "enemy_wait":
             if skip_opponent_turn:
                 message = "相手のターンはスキップされました。"
@@ -420,13 +428,13 @@ def main():
                     item_name = enemy_item[0]
                     message = f"相手が「{item_name}」を使った！"
 
-                    if item_name == "虫眼鏡":
+                    if item_name == "次弾の確認":
                         Item.searchglass(chamber[0])
-                    elif item_name == "タバコ":
+                    elif item_name == "HP1回復":
                         opponent_hp = Item.tobacco(opponent_hp)
-                    elif item_name == "のこぎり":
+                    elif item_name == "ダメージ2倍":
                         opponent_hp = Item.saw(chamber[0], opponent_hp)
-                    elif item_name == "手錠":
+                    elif item_name == "相手をスキップ":
                         Item.handcuffs()
                 target = random.choice(["プレイヤー", "相手"])
                 shoot("相手", target)
