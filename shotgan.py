@@ -1,4 +1,4 @@
-import pygame 
+import pygame
 import random
 import sys
 import os
@@ -19,33 +19,30 @@ BLUE = (0, 0, 200)
 
 # フォントを日本語に設定
 font_path = pygame.font.match_font("msgothic")
-if not os.path.exists(font_path):
-    font_path = pygame.font.match_font("msgothic")
 font = pygame.font.Font(font_path, 28) if font_path else pygame.font.SysFont("msgothic", 28)
 
 # ゲームの初期値
-bullet_count = 2
-chamber_size = 6
+bullet_count = 1  # 実弾は1発
+empty_count = random.randint(1, 3)  # 空砲は1〜3発ランダム
+chamber_size = bullet_count + empty_count
 player_turn = True
 game_over = False
-message = "ゲーム開始！"
+message = "リロード完了！"
 action_log = ""
 chamber = []
 turn_count = 0
 
-#HP初期設定
+# HP初期設定
 player_hp = 3
 opponent_hp = 3
 
-# 空弾の数をランダムに設定
+# 最後に表示するターン名（ゲームオーバー後用）
+final_turn_text = "あなた" if player_turn else "こうかとん"
+
+# 弾をロード
 def load_bullets():
     global chamber
-    chamber = [0] * chamber_size
-    bullets = random.sample(range(chamber_size), bullet_count)
-    for i in bullets:
-        chamber[i] = 1
-
-def rotate_chamber():
+    chamber = [1] * bullet_count + [0] * empty_count
     random.shuffle(chamber)
 
 # テキスト表示
@@ -62,89 +59,129 @@ def draw_button(text, x, y, w, h, color):
 # 銃を撃つ
 def shoot(shooter, target):
     global message, game_over, turn_count, action_log
-    global player_hp, opponent_hp
+    global player_hp, opponent_hp, chamber, final_turn_text
 
     if chamber:
-        round = chamber.pop(0)
+        round = chamber.pop(0)  # 次の弾を取り出す
         turn_count += 1
-        if round == 1:
-            if target == "プレイヤー":
+        if round == 1:  # 実弾
+            if target == "あなた":
                 player_hp -= 1
                 message = f"バン！ {target} が撃たれた！ 残りHP: {player_hp}"
-                action_log = f"{shooter} が撃った対象： {target}. {target} が撃たれた！"
+                action_log = f"{shooter} は {target} に向かって撃った！"
                 if player_hp <= 0:
-                    message = "あなたのHPは0 ゲームオーバー"
+                    message = "あなたのHPは0 こうかとんの勝ち！"
                     game_over = True
             else:
                 opponent_hp -= 1
                 message = f"バン！ {target} が撃たれた！ 残りHP: {opponent_hp}"
-                action_log = f"{shooter} が撃った対象： {target}. {target} が撃たれた！"
+                action_log = f"{shooter} は {target} に向かって撃った！"
                 if opponent_hp <= 0:
-                    message = "こうかとんのHPは0 あなたの勝ち！"
+                    message = "🎉 こうかとんのHPは0 あなたの勝ち！"
                     game_over = True
-        else:
-            message = f"カチッ！ {target} は生き残った。" 
-            action_log = f"{shooter} が撃った対象： {target}. {target} は生き残った。"
+        else:  # 空砲
+            message = f"カチッ！ {target} は生き残った！"
+            action_log = f"{shooter} は {target} に向かって撃った！"
     else:
-        message = "弾はもう残っていません。"
-        action_log = "弾切れ。ゲームオーバー。"
+        message = "弾はもう残っていません"
+        action_log = "弾切れ　ゲームオーバー"
         game_over = True
 
-# アップデート
-load_bullets()
-rotate_chamber()
+    # 最後のターン表示を固定
+    if game_over:
+        final_turn_text = "あなた" if player_turn else "こうかとん"
+
+# 共通画面描画
+def draw_main_screen():
+    screen.fill(WHITE)
+
+    # ターン表示（ゲーム終了後は固定）
+    turn_display = "ターン： " + (final_turn_text if game_over else ("あなた" if player_turn else "こうかとん"))
+    draw_text("こうかとん・ルーレット", (WIDTH - font.size("こうかとん・ルーレット")[0]) // 2, 40)
+    draw_text(turn_display, 200, 100)
+    draw_text(message, 200, 250)
+    draw_text(f"ターン数： {turn_count}", 200, 150)
+    draw_text(f"残りの弾数： {len(chamber)}", 200, 300)
+    draw_text(f"アクション： {action_log}", 200, 200)
+    draw_text(f"あなたのHP： {player_hp}", 180, 500, RED)
+    draw_text(f"こうかとんのHP： {opponent_hp}", 650, 500, BLUE)
+
+def opponent_turn():
+    """こうかとんのターン演出"""
+    global player_turn
+
+    draw_main_screen()
+    pygame.display.flip()
+    pygame.time.wait(2000)  # 2秒待機
+
+    target = random.choice(["あなた", "こうかとん"])
+    message = f"こうかとんは {target} を狙った！"
+    draw_main_screen()
+    pygame.display.flip()
+    pygame.time.wait(1000)  # 1秒表示
+
+    shoot("こうかとん", target)
+    draw_main_screen()
+    pygame.display.flip()
+    pygame.time.wait(3000)  # 結果を3秒表示
+
+    # クリックで自分のターンへ
+    waiting_for_click = True
+    while waiting_for_click and not game_over:
+        draw_main_screen()
+        draw_text("クリックであなたのターンへ", 370, 400, BLACK)
+        pygame.display.flip()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                waiting_for_click = False
+    player_turn = True
 
 def main():
     global player_turn, game_over
 
+    load_bullets()  # 最初にリロード
+
     while True:
-        screen.fill(WHITE)
+        draw_main_screen()
 
-        draw_text("こうかとん・ルーレット", 280, 50)
-        draw_text(f"ターン： {'プレイヤー' if player_turn else '相手'}", 300, 100)
-        draw_text(message, 250, 150)
-        draw_text(f"ターン数： {turn_count}", 300, 200)
-        draw_text(f"実弾： {chamber.count(1)}", 300, 240)
-        draw_text(f"空弾： {chamber.count(0)}", 300, 280)
-        draw_text(f"アクション： {action_log}", 100, 320)
-        draw_text(f"あなたのHP： {player_hp}", 100, 500, RED)
-        draw_text(f"相手のHP： {opponent_hp}", 800, 500, BLUE)
-
-        # 操作ボタンを表示
-        if not game_over:
+        # 操作ボタン
+        if not game_over and player_turn:
             shoot_self_btn = draw_button("自分を撃つ", 200, 400, 150, 50, RED)
-            shoot_opponent_btn = draw_button("Shoot 相手", 450, 400, 150, 50, BLUE)
-        else:
-            draw_text("ESCで終了", 450, 400, RED)
+            shoot_opponent_btn = draw_button("相手を撃つ", 700, 400, 150, 50, BLUE)
+        elif game_over:
+            draw_text("ESCで終了", 500, 400, RED)
+
+        pygame.display.flip()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
-            if not game_over:
-                if player_turn and event.type == pygame.MOUSEBUTTONDOWN:
+            if not game_over and player_turn:
+                if event.type == pygame.MOUSEBUTTONDOWN:
                     if shoot_self_btn.collidepoint(event.pos):
-                        shoot("プレイヤー", "プレイヤー")
+                        shoot("あなた", "あなた")
+                        draw_main_screen()
+                        pygame.display.flip()
+                        pygame.time.wait(3000)  # 結果を3秒表示
                         player_turn = False
                     elif shoot_opponent_btn.collidepoint(event.pos):
-                        shoot("プレイヤー", "相手")
+                        shoot("あなた", "こうかとん")
+                        draw_main_screen()
+                        pygame.display.flip()
+                        pygame.time.wait(3000)  # 結果を3秒表示
                         player_turn = False
-            else:
+            elif game_over:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
 
-        # 相手の動き
         if not player_turn and not game_over:
-            pygame.time.wait(1000)
-            target = random.choice(["プレイヤー", "相手"])
-            shoot("相手", target)
-            if not game_over:
-                player_turn = True
-
-        pygame.display.flip()
-
+            opponent_turn()
 
 if __name__ == "__main__":
     pygame.init()
