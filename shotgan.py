@@ -33,12 +33,15 @@ chamber = []
 turn_count = 0
 last_dead = None  # 誰がやられたか（"player" or "opponent"）
 # 画像読み込み
-enemy_img = pygame.image.load(f"fig/enemy.png")
-enemy_img = pygame.transform.scale(enemy_img, (200, 300))
+enemy_normal_img = pygame.image.load("fig/enemy.png")
+enemy_normal_img = pygame.transform.scale(enemy_normal_img, (WIDTH, HEIGHT))
+enemy_damage_img = pygame.image.load("fig/enemy_damage.png")
+enemy_damage_img = pygame.transform.scale(enemy_damage_img, (WIDTH, HEIGHT))
+current_enemy_img = enemy_normal_img
 background_img = pygame.image.load(f"fig/background.png")
 background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
 start_btn_img = pygame.image.load(f"fig/start_button.png")
-start_btn_img = pygame.transform.scale(start_btn_img, (200, 60))
+start_btn_img = pygame.transform.scale(start_btn_img, (WIDTH, HEIGHT))
 title_img = pygame.image.load(f"fig/title.png")
 title_img = pygame.transform.scale(title_img, (WIDTH, HEIGHT))
 gameclear_img = pygame.image.load(f"fig/gameclear.png")
@@ -58,7 +61,15 @@ def rotate_chamber():
     random.shuffle(chamber)
 
 # テキスト表示
-def draw_text(text, x, y, color=BLACK):
+def draw_text(text, x, y, color=BLACK, outline_color=WHITE, outline_thickness=2):
+    # 縁取り（outline）を先に描画
+    for dx in [-outline_thickness, 0, outline_thickness]:
+        for dy in [-outline_thickness, 0, outline_thickness]:
+            if dx == 0 and dy == 0:
+                continue
+            outline_img = font.render(text, True, outline_color)
+            screen.blit(outline_img, (x + dx, y + dy))
+    # メインの文字（中央）
     img = font.render(text, True, color)
     screen.blit(img, (x, y))
 
@@ -70,7 +81,7 @@ def draw_button(text, x, y, w, h, color):
 
 # 銃を撃つ
 def shoot(shooter, target):
-    global message, game_over, turn_count, action_log, last_dead
+    global message, game_over, turn_count, action_log, last_dead, current_enemy_img
     if chamber:
         round = chamber.pop(0)
         turn_count += 1
@@ -78,6 +89,10 @@ def shoot(shooter, target):
             message = f"バン！ {target} が撃たれた！"
             action_log = f"{shooter} が撃った対象： {target}. {target} が撃たれた！"
             last_dead = "player" if target == "プレイヤー" else "opponent"
+
+            if target == "相手":
+                current_enemy_img = enemy_damage_img  # ← ダメージ画像に差し替え！
+
             game_over = True
         else:
             message = f"カチッ！ {target} は生き残った。"
@@ -101,7 +116,7 @@ def draw_image_button(img, x, y):
 def show_title_screen():
     while True:
         screen.blit(title_img, (0, 0))
-        start_btn = draw_image_button(start_btn_img, 450, 500)
+        start_btn = draw_image_button(start_btn_img, 0, 0)
         pygame.display.update()
 
         for event in pygame.event.get():
@@ -117,19 +132,17 @@ def main():
     player_turn = True
     while True:
         screen.blit(background_img, (0, 0))
-        screen.blit(enemy_img, (800, 250))
+        screen.blit(current_enemy_img, (0, 0))
+        draw_text(f"ターン： {'プレイヤー' if player_turn else '相手'}", 30, 80, BLACK, WHITE)
+        draw_text(message, 30, 130, BLACK, WHITE)
+        draw_text(f"ターン数： {turn_count}", 30, 180, BLACK, WHITE)
+        draw_text(f"弾数： {chamber.count(1)}", 470, 420, BLACK, WHITE)
+        draw_text(f"空砲： {chamber.count(0)}", 470, 460, BLACK, WHITE)
+        draw_text(f"アクション： {action_log}", 30, 330, BLACK, WHITE)
 
-        draw_text("こうかとん・ルーレット", 280, 50)
-        draw_text(f"ターン： {'プレイヤー' if player_turn else '相手'}", 300, 100)
-        draw_text(message, 250, 150)
-        draw_text(f"ターン数： {turn_count}", 300, 200)
-        draw_text(f"弾数： {chamber.count(1)}", 300, 240)
-        draw_text(f"空砲： {chamber.count(0)}", 300, 280)
-        draw_text(f"アクション： {action_log}", 100, 320)
-
-        # 操作ボタンを表示
-        shoot_self_btn = draw_button("自分を撃つ", 200, 400, 150, 50, RED)
-        shoot_opponent_btn = draw_button("Shoot 相手", 450, 400, 150, 50, BLUE)
+        # 操作ボタン
+        shoot_self_btn = draw_button("自分を撃つ", 300, 500, 150, 50, RED)
+        shoot_opponent_btn = draw_button("相手を撃つ", 650, 500, 150, 50, BLUE)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -155,20 +168,23 @@ def main():
         if game_over:
             if last_dead == "player":
                 screen.blit(gameover_player_img, (0, 0))
-                draw_text("プレイヤーの負け！", 400, 500, RED)
                 pygame.display.update()
                 pygame.time.wait(3000)
                 pygame.quit()
                 sys.exit()
             elif last_dead == "opponent":
+                screen.blit(enemy_damage_img, (0, 0))
+                pygame.display.update()
+                pygame.time.wait(700)
+
+                # 勝利画像を表示
                 screen.blit(gameclear_img, (0, 0))
-                draw_text("勝利！", 450, 500, BLUE)
                 pygame.display.update()
                 pygame.time.wait(3000)
                 pygame.quit()
                 sys.exit()
             else:
-                draw_text("ゲームオーバー", 400, 500, BLACK)
+                screen.blit(gameclear_img, (0, 0))
                 pygame.display.update()
                 pygame.time.wait(3000)
                 pygame.quit()
