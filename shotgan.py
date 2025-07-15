@@ -19,6 +19,7 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (200, 0, 0)
 BLUE = (0, 0, 200)
+GREEN = (0, 200, 0)
 
 
 # フォントを日本語に設定
@@ -33,7 +34,10 @@ chamber_size = bullet_count + empty_count
 player_turn = True
 game_over = False
 message = "リロード完了！"
+item_message = ""
 action_log = ""
+turn_phase = "player"
+enemy_action_timer = 0
 chamber = []
 turn_count = 0
 skip_opponent_turn = False
@@ -49,17 +53,24 @@ opponent_hp = 3
 final_turn_text = "あなた" if player_turn else "こうかとん"
 
 # 弾をロード
+used_items = set()
+item_used_this_turn = False
+item_box_clicked_this_turn = False
+selected_item = None
+show_use_confirm = False
+use_confirm_rects = {}
+enemy_can_use_items = True
+
+# 弾の装填
 def load_bullets():
     global chamber
     chamber = [1] * bullet_count + [0] * empty_count
     random.shuffle(chamber)
 
-
-# テキスト表示
+# テキスト描画
 def draw_text(text, x, y, color=BLACK):
     img = font.render(text, True, color)
     screen.blit(img, (x, y))
-
 
 # 操作ボタンの表示
 def draw_button(text, x, y, w, h, color):
@@ -72,6 +83,7 @@ def draw_button(text, x, y, w, h, color):
 def shoot(shooter, target):
     global message, game_over, turn_count, action_log
     global player_hp, opponent_hp, chamber, final_turn_text
+    global player_turn, skip_opponent_turn 
 
     if chamber:
         round = chamber.pop(0)  # 次の弾を取り出す
@@ -162,7 +174,7 @@ def draw_main_screen():
 
 def opponent_turn():
     """こうかとんのターン演出"""
-    global player_turn
+    global player_turn,message
 
     draw_main_screen()
     pygame.display.flip()
@@ -193,9 +205,46 @@ def opponent_turn():
                 waiting_for_click = False
     player_turn = True
 
+# アイテム画像
+item_box_img = pygame.image.load("fig/itembox.png")
+item_box_img = pygame.transform.scale(item_box_img, (100, 100))
+item_list = [
+    ("虫眼鏡", pygame.image.load("fig/searchglass.png")),
+    ("タバコ", pygame.image.load("fig/tobacco.png")),
+    ("のこぎり", pygame.image.load("fig/saw.png")),
+    ("手錠", pygame.image.load("fig/handcuffs.png"))    
+]
+
+# 確認ボタン描画
+def draw_use_confirm_buttons():
+    global use_confirm_rects
+    yes_btn = draw_button("はい", 800, 370, 80, 40, GREEN)
+    no_btn = draw_button("いいえ", 900, 370, 80, 40, RED)
+    use_confirm_rects = {"yes": yes_btn, "no": no_btn}
+
+# アイテム効果適用
+def apply_item_effect(name):
+    global player_hp,opponent_hp
+    if name == "虫眼鏡":
+        Item.searchglass(chamber[0])
+    elif name == "タバコ":
+        player_hp = Item.tobacco(player_hp)
+        opponent_hp = Item.tobacco(opponent_hp)
+    elif name == "のこぎり":
+        player_hp = Item.saw(chamber[0], player_hp)
+        opponent_hp = Item.saw(chamber[0], opponent_hp)
+    elif name == "手錠":
+        Item.handcuffs()
+
+
+# メインループ
 def main():
     global player_turn, game_over, skip_opponent_turn
-
+    global selected_item, show_use_confirm
+    global enemy_can_use_items
+    global item_used_this_turn, item_box_clicked_this_turn
+    global message
+    global turn_phase,enemy_action_timer
     load_bullets()  # 最初にリロード
 
     while True:
@@ -205,44 +254,109 @@ def main():
         if not game_over and player_turn:
             shoot_self_btn = draw_button("自分を撃つ", 200, 400, 150, 50, RED)
             shoot_opponent_btn = draw_button("相手を撃つ", 700, 400, 150, 50, BLUE)
+            item_box_rect = pygame.Rect(800, 100, 100, 100)
         elif game_over:
             draw_text("ESCで終了", 500, 400, RED)
 
         pygame.display.flip()
 
+        if player_turn:
+            screen.blit(item_box_img, item_box_rect.topleft)
+        if selected_item:
+            name, img = selected_item
+            screen.blit(img, (800, 220))
+            draw_text(name, 800, 310)
+        if show_use_confirm:
+            draw_text("このアイテムを使いますか？", 800, 340)
+            draw_use_confirm_buttons()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
-            if not game_over and player_turn:
-                if event.type == pygame.MOUSEBUTTONDOWN:
+            if player_turn and event.type == pygame.MOUSEBUTTONDOWN and not game_over:
+                if show_use_confirm:
+                    if use_confirm_rects.get("yes") and use_confirm_rects["yes"].collidepoint(event.pos):
+                        apply_item_effect(selected_item[0])
+                        used_items.add(selected_item[0])
+                        item_used_this_turn = True
+                        selected_item = None
+                        show_use_confirm = False
+                    elif use_confirm_rects.get("no") and use_confirm_rects["no"].collidepoint(event.pos):
+                        selected_item = None
+                        show_use_confirm = False
+                else:
                     if shoot_self_btn.collidepoint(event.pos):
                         shoot("あなた", "あなた")
                         draw_main_screen()
                         pygame.display.flip()
                         pygame.time.wait(3000)  # 結果を3秒表示
-                        player_turn = False
+                        player_turn = False  
                     elif shoot_opponent_btn.collidepoint(event.pos):
                         shoot("あなた", "こうかとん")
                         draw_main_screen()
                         pygame.display.flip()
                         pygame.time.wait(3000)  # 結果を3秒表示
                         player_turn = False
+                        turn_phase = "enemy_wait"
+                        enemy_action_timer = pygame.time.get_ticks()
+                        selected_item = None
+                        item_used_this_turn = False
+                        item_box_clicked_this_turn = False
+                    elif item_box_rect.collidepoint(event.pos) and not item_box_clicked_this_turn:
+                        available_items = [item for item in item_list if item[0] not in used_items]
+                        if available_items:
+                            selected_item = random.choice(available_items)
+                            item_box_clicked_this_turn = True
+                    elif selected_item and not item_used_this_turn:
+                        name, img = selected_item
+                        item_rect = pygame.Rect(800, 220, img.get_width(), img.get_height())
+                        if item_rect.collidepoint(event.pos):
+                            show_use_confirm = True
             elif game_over:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     pygame.quit()
-                    sys.exit()
-
+                    sys.exit()   
+        # 相手のターン処理
         if not player_turn and not game_over:
-
             pygame.time.wait(1000)
+            # 敵の行動フェーズ
+        if turn_phase == "enemy_wait":
             if skip_opponent_turn:
+                message = "相手のターンはスキップされました。"
                 skip_opponent_turn = False
-                player_turn = True
-            else:
-                opponent_turn()
+                turn_phase = "player"
+                player_turn = True 
+                item_used_this_turn = False
+                item_box_clicked_this_turn = False
+            elif pygame.time.get_ticks() - enemy_action_timer > 1000:
+                turn_phase = "enemy_action"
+        # フェーズ処理：敵の行動（アイテム＋攻撃）
+        elif turn_phase == "enemy_action":
+            if not game_over:
+                if enemy_can_use_items and random.random() < 0.3:
+                    enemy_item = random.choice(item_list)
+                    item_name = enemy_item[0]
+                    message = f"相手が「{item_name}」を使った！"
 
+                    if item_name == "虫眼鏡":
+                        Item.searchglass(chamber[0])
+                    elif item_name == "タバコ":
+                        opponent_hp = Item.tobacco(opponent_hp)
+                    elif item_name == "のこぎり":
+                        opponent_hp = Item.saw(chamber[0], opponent_hp)
+                    elif item_name == "手錠":
+                        Item.handcuffs()
+                target = random.choice(["プレイヤー", "相手"])
+                shoot("相手", target)
+
+            #プレイヤーのターンに戻す
+            turn_phase = "player"
+            player_turn = True  
+            item_used_this_turn = False
+            item_box_clicked_this_turn = False
+
+        pygame.display.flip()
 
 if __name__ == "__main__":
     pygame.init()
