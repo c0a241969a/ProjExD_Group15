@@ -33,10 +33,8 @@ blank_sound = pygame.mixer.Sound("sound\拳銃の弾切れ.mp3")  #空砲音を�
 
 
 # ゲームの初期値
-bullet_count = 1  # 実弾は1発
-empty_count = random.randint(1, 3)  # 空砲は1〜3発ランダム
-chamber_size = bullet_count + empty_count
-player_turn = True
+# bullet_count = 2
+chamber_size = random.randint(1, 7)
 game_over = False
 message = "リロード完了！"
 item_message = ""
@@ -69,7 +67,13 @@ enemy_can_use_items = True
 # 弾の装填
 def load_bullets():
     global chamber
-    chamber = [1] * bullet_count + [0] * empty_count
+    chamber = [0] * chamber_size
+    bullet_count = random.randint(1, chamber_size-1)
+    bullets = random.sample(range(chamber_size), bullet_count)
+    for i in bullets:
+        chamber[i] = 1
+
+def rotate_chamber():
     random.shuffle(chamber)
 
 # テキスト描画
@@ -115,14 +119,14 @@ def shoot(shooter, target):
             action_log = f"{shooter} は {target} に向かって撃った！"
             blank_sound.play()
     else:
-        message = "弾はもう残っていません"
-        action_log = "弾切れ　ゲームオーバー"
-        game_over = True
+        if player_hp != 0 and opponent_hp !=0:  # もし弾がなくなっても双方のHPが残っていたらリロード
+            load_bullets()
+            rotate_chamber()
 
-    # 最後のターン表示を固定
+        # 最後のターン表示を固定
     if game_over:
         final_turn_text = "あなた" if player_turn else "こうかとん"
-
+            
 
 class Item:
     """
@@ -164,7 +168,8 @@ class Item:
         skip_opponent_turn = True
         enemy_can_use_items = False
         message = "手錠を使って相手のターンをスキップした。"
- 
+
+
 # 共通画面描画
 def draw_main_screen():
     screen.fill(WHITE)
@@ -254,6 +259,8 @@ def main():
     global message
     global turn_phase,enemy_action_timer
     load_bullets()  # 最初にリロード
+    rotate_chamber()
+
 
     while True:
         draw_main_screen()
