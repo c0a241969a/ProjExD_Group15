@@ -26,6 +26,11 @@ GREEN = (0, 200, 0)
 font_path = pygame.font.match_font("msgothic")
 font = pygame.font.Font(font_path, 28) if font_path else pygame.font.SysFont("msgothic", 28)
 
+# サウンドの設定
+pygame.mixer.init()
+gunshot_sound = pygame.mixer.Sound("sound\拳銃を撃つ.mp3")  #銃声を読み込み
+blank_sound = pygame.mixer.Sound("sound\拳銃の弾切れ.mp3")  #空砲音を読み込み
+
 
 # ゲームの初期値
 bullet_count = 1  # 実弾は1発
@@ -95,6 +100,7 @@ def shoot(shooter, target):
                 action_log = f"{shooter} は {target} に向かって撃った！"
                 if player_hp <= 0:
                     message = "あなたのHPは0 こうかとんの勝ち！"
+                    gunshot_sound.play()
                     game_over = True
             else:
                 opponent_hp -= 1
@@ -102,10 +108,12 @@ def shoot(shooter, target):
                 action_log = f"{shooter} は {target} に向かって撃った！"
                 if opponent_hp <= 0:
                     message = "こうかとんのHPは0 あなたの勝ち！"
+                    gunshot_sound.play()
                     game_over = True
         else:  # 空砲
-            message = f"カチッ！ {target} は生き残った！"
+            message = f"カチッ！ {target} は生き残った。"
             action_log = f"{shooter} は {target} に向かって撃った！"
+            blank_sound.play()
     else:
         message = "弾はもう残っていません"
         action_log = "弾切れ　ゲームオーバー"
@@ -357,7 +365,7 @@ def main():
             item_box_clicked_this_turn = False
 
         pygame.display.flip()
-
+        
 if __name__ == "__main__":
     pygame.init()
     main()
