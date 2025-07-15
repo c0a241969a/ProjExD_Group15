@@ -46,7 +46,25 @@ turn_count = 0
 skip_opponent_turn = False
 player_turn = True
 enemy_can_use_items = True
+last_dead = None  # 誰がやられたか（"player" or "opponent"）
 
+
+# 画像読み込み
+enemy_normal_img = pygame.image.load("fig/enemy.png")
+enemy_normal_img = pygame.transform.scale(enemy_normal_img, (WIDTH, HEIGHT))
+enemy_damage_img = pygame.image.load("fig/enemy_damage.png")
+enemy_damage_img = pygame.transform.scale(enemy_damage_img, (WIDTH, HEIGHT))
+current_enemy_img = enemy_normal_img
+background_img = pygame.image.load(f"fig/background.png")
+background_img = pygame.transform.scale(background_img, (WIDTH, HEIGHT))
+start_btn_img = pygame.image.load(f"fig/start_button.png")
+start_btn_img = pygame.transform.scale(start_btn_img, (WIDTH, HEIGHT))
+title_img = pygame.image.load(f"fig/title.png")
+title_img = pygame.transform.scale(title_img, (WIDTH, HEIGHT))
+gameclear_img = pygame.image.load(f"fig/gameclear.png")
+gameclear_img = pygame.transform.scale(gameclear_img, (WIDTH, HEIGHT))
+gameover_player_img = pygame.image.load(f"fig/gameover_player.png")
+gameover_player_img = pygame.transform.scale(gameover_player_img, (WIDTH, HEIGHT))
 
 # HP初期設定
 player_hp = 3
@@ -76,8 +94,16 @@ def load_bullets():
 def rotate_chamber():
     random.shuffle(chamber)
 
-# テキスト描画
-def draw_text(text, x, y, color=BLACK):
+# テキスト表示
+def draw_text(text, x, y, color=BLACK, outline_color=WHITE, outline_thickness=2):
+    # 縁取り（outline）を先に描画
+    for dx in [-outline_thickness, 0, outline_thickness]:
+        for dy in [-outline_thickness, 0, outline_thickness]:
+            if dx == 0 and dy == 0:
+                continue
+            outline_img = font.render(text, True, outline_color)
+            screen.blit(outline_img, (x + dx, y + dy))
+    # メインの文字（中央）
     img = font.render(text, True, color)
     screen.blit(img, (x, y))
 
@@ -126,6 +152,27 @@ def shoot(shooter, target):
         # 最後のターン表示を固定
     if game_over:
         final_turn_text = "あなた" if player_turn else "こうかとん"
+
+
+def draw_image_button(img, x, y):
+    screen.blit(img, (x, y))
+    rect = pygame.Rect(x, y, img.get_width(), img.get_height())
+    return rect
+
+
+def show_title_screen():
+    while True:
+        screen.blit(title_img, (0, 0))
+        start_btn = draw_image_button(start_btn_img, 0, 0)
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if start_btn.collidepoint(event.pos):
+                    return
             
 
 class Item:
@@ -172,7 +219,6 @@ class Item:
 
 # 共通画面描画
 def draw_main_screen():
-    screen.fill(WHITE)
 
     # ターン表示（ゲーム終了後は固定）
     turn_display = "ターン： " + (final_turn_text if game_over else ("あなた" if player_turn else "こうかとん"))
@@ -258,12 +304,22 @@ def main():
     global item_used_this_turn, item_box_clicked_this_turn
     global message
     global turn_phase,enemy_action_timer
+    global player_hp,opponent_hp
     load_bullets()  # 最初にリロード
     rotate_chamber()
 
 
     while True:
         draw_main_screen()
+
+        screen.blit(background_img, (0, 0))
+        screen.blit(current_enemy_img, (0, 0))
+        draw_text(f"ターン： {'プレイヤー' if player_turn else '相手'}", 30, 80, BLACK, WHITE)
+        draw_text(message, 30, 130, BLACK, WHITE)
+        draw_text(f"ターン数： {turn_count}", 30, 180, BLACK, WHITE)
+        draw_text(f"弾数： {chamber.count(1)}", 470, 420, BLACK, WHITE)
+        draw_text(f"空砲： {chamber.count(0)}", 470, 460, BLACK, WHITE)
+        draw_text(f"アクション： {action_log}", 30, 330, BLACK, WHITE)
 
         # 操作ボタン
         if not game_over and player_turn:
@@ -302,7 +358,16 @@ def main():
                         show_use_confirm = False
                 else:
                     if shoot_self_btn.collidepoint(event.pos):
-                        shoot("あなた", "あなた")
+                        result = shoot("あなた", "あなた")
+                        if result == "miss":
+                            player_turn = True
+                        else:
+                            turn_phase = "enemy_wait"
+                            enemy_action_timer = pygame.time.get_ticks()
+                            player_turn = False
+                            selected_item = None
+                            item_used_this_turn = False
+                            item_box_clicked_this_turn = False
                         draw_main_screen()
                         pygame.display.flip()
                         pygame.time.wait(3000)  # 結果を3秒表示
@@ -371,10 +436,39 @@ def main():
             item_used_this_turn = False
             item_box_clicked_this_turn = False
 
+
+        # --- ゲームオーバー画面処理（プレイヤー負け時のみ画像） ---
+        if game_over:
+            if last_dead == "player":
+                screen.blit(gameover_player_img, (0, 0))
+                pygame.display.update()
+                pygame.time.wait(3000)
+                pygame.quit()
+                sys.exit()
+            elif last_dead == "opponent":
+                screen.blit(enemy_damage_img, (0, 0))
+                pygame.display.update()
+                pygame.time.wait(700)
+
+                # 勝利画像を表示
+                screen.blit(gameclear_img, (0, 0))
+                pygame.display.update()
+                pygame.time.wait(3000)
+                pygame.quit()
+                sys.exit()
+            else:
+                screen.blit(gameclear_img, (0, 0))
+                pygame.display.update()
+                pygame.time.wait(3000)
+                pygame.quit()
+                sys.exit()
+
+
         pygame.display.flip()
         
 if __name__ == "__main__":
     pygame.init()
+    show_title_screen()
     main()
     pygame.quit()
     sys.exit()
