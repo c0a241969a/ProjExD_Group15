@@ -33,7 +33,6 @@ blank_sound = pygame.mixer.Sound("sound\拳銃の弾切れ.mp3")  #空砲音を�
 
 
 # ゲームの初期値
-# bullet_count = 2
 chamber_size = random.randint(1, 7)
 game_over = False
 message = "リロード完了！"
@@ -128,6 +127,7 @@ def shoot(shooter, target):
                 player_hp -= 1
                 message = f"バン！ {target} が撃たれた！ 残りHP: {player_hp}"
                 action_log = f"{shooter} は {target} に向かって撃った！"
+                gunshot_sound.play()
                 if player_hp <= 0:
                     message = "あなたのHPは0 こうかとんの勝ち！"
                     gunshot_sound.play()
@@ -136,6 +136,7 @@ def shoot(shooter, target):
                 opponent_hp -= 1
                 message = f"バン！ {target} が撃たれた！ 残りHP: {opponent_hp}"
                 action_log = f"{shooter} は {target} に向かって撃った！"
+                gunshot_sound.play()
                 if opponent_hp <= 0:
                     message = "こうかとんのHPは0 あなたの勝ち！"
                     gunshot_sound.play()
