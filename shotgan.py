@@ -119,7 +119,7 @@ def draw_button(text, x, y, w, h, color):
 def shoot(shooter, target):
     global message, game_over, turn_count, action_log
     global player_hp, opponent_hp, chamber, final_turn_text
-    global player_turn, skip_opponent_turn, damage
+    global player_turn, skip_opponent_turn, damage ,last_dead
 
     if chamber:
         round = chamber.pop(0)  # 次の弾を取り出す
@@ -132,6 +132,7 @@ def shoot(shooter, target):
                 action_log = f"{shooter} は {target} に向かって撃った！"
                 gunshot_sound.play()
                 if player_hp <= 0:
+                    last_dead = "player"
                     message = "あなたのHPは0 こうかとんの勝ち！"
                     gunshot_sound.play()
                     game_over = True
@@ -142,6 +143,7 @@ def shoot(shooter, target):
                 action_log = f"{shooter} は {target} に向かって撃った！"
                 gunshot_sound.play()
                 if opponent_hp <= 0:
+                    last_dead = "opponent"
                     message = "こうかとんのHPは0 あなたの勝ち！"
                     gunshot_sound.play()
                     game_over = True
@@ -232,11 +234,21 @@ def draw_main_screen():
     draw_text(turn_display, 30, 100)
     draw_text(message, 30, 250)
     draw_text(f"ターン数： {turn_count}", 30, 150)
-    draw_text(f"実弾： {chamber.count(1)}", 470, 420, BLACK, WHITE)
-    draw_text(f"空弾： {chamber.count(0)}", 470, 460, BLACK, WHITE)
+    draw_text(f"実弾： {chamber.count(1)}", 470, 520, BLACK, WHITE)
+    draw_text(f"空弾： {chamber.count(0)}", 470, 560, BLACK, WHITE)
     draw_text(f"アクション： {action_log}", 30, 200)
-    draw_text(f"あなたのHP： {player_hp}", 180, 500, RED)
-    draw_text(f"こうかとんのHP： {opponent_hp}", 650, 500, BLUE)
+    draw_text(f"あなたのHP： {player_hp}", 180, 590, RED)
+    draw_text(f"こうかとんのHP： {opponent_hp}", 650, 590, BLUE)
+
+    if not game_over and player_turn:
+        screen.blit(item_box_img, (800, 100))
+        if selected_item:
+            name, img = selected_item
+            screen.blit(img, (800, 220))
+            draw_text(name, 800, 310)
+        if show_use_confirm:
+            draw_text("このアイテムを使いますか？", 800, 340)
+            draw_use_confirm_buttons()
         
 
 def opponent_turn():
@@ -285,8 +297,8 @@ item_list = [
 # 確認ボタン描画
 def draw_use_confirm_buttons():
     global use_confirm_rects
-    yes_btn = draw_button("はい", 800, 370, 80, 40, GREEN)
-    no_btn = draw_button("いいえ", 900, 370, 80, 40, RED)
+    yes_btn = draw_button("はい", 800, 370, 80, 50, GREEN)
+    no_btn = draw_button("いいえ", 900, 370, 100, 50, RED)
     use_confirm_rects = {"yes": yes_btn, "no": no_btn}
 
 # アイテム効果適用
@@ -313,11 +325,13 @@ def main():
     global message
     global turn_phase,enemy_action_timer
     global player_hp,opponent_hp
-    load_bullets()  # 最初にリロード
-    rotate_chamber()
 
 
     while True:
+        if player_turn and not chamber and not game_over:
+            load_bullets()  # 最初にリロード
+            rotate_chamber()
+
         screen.blit(background_img, (0, 0))
         screen.blit(current_enemy_img, (0, 0))
 
@@ -332,23 +346,15 @@ def main():
 
         # 操作ボタン
         if not game_over and player_turn:
-            shoot_self_btn = draw_button("自分を撃つ", 200, 400, 150, 50, RED)
-            shoot_opponent_btn = draw_button("相手を撃つ", 700, 400, 150, 50, BLUE)
+            shoot_self_btn = draw_button("自分を撃つ", 200, 490, 150, 50, RED)
+            shoot_opponent_btn = draw_button("相手を撃つ", 700, 490, 150, 50, BLUE)
             item_box_rect = pygame.Rect(800, 100, 100, 100)
         elif game_over:
             draw_text("ESCで終了", 500, 400, RED)
 
         pygame.display.flip()
 
-        if player_turn:
-            screen.blit(item_box_img, item_box_rect.topleft)
-        if selected_item:
-            name, img = selected_item
-            screen.blit(img, (800, 220))
-            draw_text(name, 800, 310)
-        if show_use_confirm:
-            draw_text("このアイテムを使いますか？", 800, 340)
-            draw_use_confirm_buttons()
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -383,15 +389,15 @@ def main():
                         player_turn = False  
                     elif shoot_opponent_btn.collidepoint(event.pos):
                         shoot("あなた", "こうかとん")
+                        turn_phase = "enemy_wait"
+                        enemy_wait_timer = pygame.time.get_ticks()
+                        selected_item = None
+                        item_used_this_turn = False
+                        item_box_clicked_this_turn = False
                         draw_main_screen()
                         pygame.display.flip()
                         # pygame.time.wait(3000)  # 結果を3秒表示
                         player_turn = False
-                        turn_phase = "enemy_wait"
-                        enemy_action_timer = pygame.time.get_ticks()
-                        selected_item = None
-                        item_used_this_turn = False
-                        item_box_clicked_this_turn = False
                     elif item_box_rect.collidepoint(event.pos) and not item_box_clicked_this_turn:
                         available_items = [item for item in item_list if item[0] not in used_items]
                         if available_items:
@@ -412,7 +418,7 @@ def main():
         #     # 敵の行動フェーズ
         if turn_phase == "enemy_wait":
             if skip_opponent_turn:
-                message = "相手のターンはスキップされました。"
+                message = "こうかとんのターンはスキップされました。"
                 skip_opponent_turn = False
                 turn_phase = "player"
                 player_turn = True 
@@ -426,7 +432,7 @@ def main():
                 if enemy_can_use_items and random.random() < 0.3:
                     enemy_item = random.choice(item_list)
                     item_name = enemy_item[0]
-                    message = f"相手が「{item_name}」を使った！"
+                    message = f"こうかとんが「{item_name}」を使った！"
 
                     if item_name == "次弾の確認":
                         Item.searchglass(chamber[0])
@@ -436,8 +442,8 @@ def main():
                         opponent_hp = Item.saw(chamber[0], opponent_hp)
                     elif item_name == "相手をスキップ":
                         Item.handcuffs()
-                target = random.choice(["プレイヤー", "相手"])
-                shoot("相手", target)
+                target = random.choice(["あなた", "こうかとん"])
+                shoot("こうかとん", target)
 
             #プレイヤーのターンに戻す
             turn_phase = "player"
@@ -457,7 +463,7 @@ def main():
             elif last_dead == "opponent":
                 screen.blit(enemy_damage_img, (0, 0))
                 pygame.display.update()
-                pygame.time.wait(700)
+                pygame.time.wait(900)
 
                 # 勝利画像を表示
                 screen.blit(gameclear_img, (0, 0))
@@ -465,13 +471,6 @@ def main():
                 pygame.time.wait(3000)
                 pygame.quit()
                 sys.exit()
-            else:
-                screen.blit(gameclear_img, (0, 0))
-                pygame.display.update()
-                pygame.time.wait(3000)
-                pygame.quit()
-                sys.exit()
-
 
         pygame.display.flip()
         
