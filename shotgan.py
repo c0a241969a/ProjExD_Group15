@@ -323,7 +323,7 @@ def main():
     global enemy_can_use_items
     global item_used_this_turn, item_box_clicked_this_turn
     global message
-    global turn_phase,enemy_action_timer
+    global turn_phase,enemy_wait_timer
     global player_hp,opponent_hp
 
 
@@ -336,13 +336,6 @@ def main():
         screen.blit(current_enemy_img, (0, 0))
 
         draw_main_screen()
-
-        # draw_text(f"ターン： {'プレイヤー' if player_turn else '相手'}", 30, 80, BLACK, WHITE)
-        # draw_text(message, 30, 130, BLACK, WHITE)
-        # draw_text(f"ターン数： {turn_count}", 30, 180, BLACK, WHITE)
-        # draw_text(f"弾数： {chamber.count(1)}", 470, 420, BLACK, WHITE)
-        # draw_text(f"空砲： {chamber.count(0)}", 470, 460, BLACK, WHITE)
-        # draw_text(f"アクション： {action_log}", 30, 330, BLACK, WHITE)
 
         # 操作ボタン
         if not game_over and player_turn:
@@ -373,16 +366,12 @@ def main():
                         show_use_confirm = False
                 else:
                     if shoot_self_btn.collidepoint(event.pos):
-                        result = shoot("あなた", "あなた")
-                        if result == "miss":
-                            player_turn = True
-                        else:
-                            turn_phase = "enemy_wait"
-                            enemy_action_timer = pygame.time.get_ticks()
-                            player_turn = True
-                            selected_item = None
-                            item_used_this_turn = False
-                            item_box_clicked_this_turn = False
+                        shoot("あなた", "あなた")
+                        turn_phase = "enemy_wait"
+                        enemy_wait_timer = pygame.time.get_ticks()
+                        selected_item = None
+                        item_used_this_turn = False
+                        item_box_clicked_this_turn = False
                         draw_main_screen()
                         pygame.display.flip()
                         # pygame.time.wait(3000)  # 結果を3秒表示
@@ -424,7 +413,7 @@ def main():
                 player_turn = True 
                 item_used_this_turn = False
                 item_box_clicked_this_turn = False
-            elif pygame.time.get_ticks() - enemy_action_timer > 1000:
+            elif pygame.time.get_ticks() - enemy_wait_timer > 1000:
                 turn_phase = "enemy_action"
         # フェーズ処理：敵の行動（アイテム＋攻撃）
         elif turn_phase == "enemy_action":
