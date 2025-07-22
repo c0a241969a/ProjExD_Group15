@@ -7,6 +7,7 @@
 ## ゲームの概要
 * 実弾と空弾のどちらかが入っている銃の引き金を自分かディーラーに向けて引く運任せのゲーム
 * 参考URL：[Buckshot Roulette](https://store.steampowered.com/app/2835570/Buckshot_Roulette/?l=japanese)
+* ![title](fig/スクリーンショット.png)
 
 ## ゲームの遊び方
 * 自分に向けて撃つかこうかとんに撃つか決め、キーを押して銃の引き金を引く
